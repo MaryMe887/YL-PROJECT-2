@@ -34,7 +34,6 @@ def start_screen():
     intro_text = ["COP CAT", "",
                   "Начать игру",
                   "Настройки"]
-
     fon = pygame.transform.scale(load_image('fon.jpg'), (width, height))
     screen.blit(fon, (0, 0))
     font = pygame.font.Font(None, 30)
@@ -73,14 +72,14 @@ def load_level(filename):
     return list(map(lambda x: x.ljust(max_width, '.'), level_map))
 
 
-tile_images = {
-    'rock': load_image('rock.png'),
-    'empty': load_image('grass.png')
-}
-player_image = load_image('cop.png')
-
-
 tile_width = tile_height = 50
+tile_images = {
+    'rock': pygame.transform.scale(load_image('rock.png'), (30, 30)),
+    'empty': pygame.transform.scale(load_image('grass.png'), (tile_width, tile_height))
+}
+player_image = pygame.transform.scale(load_image('cop.png'), (40, 50))
+
+
 tiles_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
@@ -131,37 +130,38 @@ def generate_level(level):
 
 
 class Game:
-    pygame.display.set_caption("Cat Cop")
-    start_screen()
-    level_map = load_level('map.txt')
-    new_level = generate_level(level_map)
-    player = new_level[0]
-    # screen = pygame.display.set_mode((new_level[1] * tile_width, new_level[2]))
-    running = True
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
-                    player.move(0, -1)
-                elif event.key == pygame.K_DOWN:
-                    player.move(0, 1)
-                elif event.key == pygame.K_RIGHT:
-                    player.move(1, 0)
-                elif event.key == pygame.K_LEFT:
-                    player.move(-1, 0)
-        pygame.display.flip()
-        clock.tick(FPS)
+    def __init__(self):
+        pygame.display.set_caption("Cat Cop")
+        start_screen()
+        level_map = load_level('map.txt')
+        new_level = generate_level(level_map)
+        player = new_level[0]
+        # screen = pygame.display.set_mode((new_level[1] * tile_width, new_level[2]))
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_UP:
+                        player.move(0, -1)
+                    elif event.key == pygame.K_DOWN:
+                        player.move(0, 1)
+                    elif event.key == pygame.K_RIGHT:
+                        player.move(1, 0)
+                    elif event.key == pygame.K_LEFT:
+                        player.move(-1, 0)
+            pygame.display.flip()
+            clock.tick(FPS)
 
-        screen.fill((0, 0, 0))
-        tiles_group.draw(screen)
-        player_group.draw(screen)
-        clock.tick(FPS)
-        pygame.display.flip()
+            screen.fill((0, 0, 0))
+            tiles_group.draw(screen)
+            player_group.draw(screen)
+            clock.tick(FPS)
+            pygame.display.flip()
 
-    pygame.quit()
+        pygame.quit()
 
 
 if __name__ == '__main__':
-    start_screen()
+    Game()
