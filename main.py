@@ -74,10 +74,10 @@ def load_level(filename):
 
 tile_width = tile_height = 50
 tile_images = {
-    'rock': pygame.transform.scale(load_image('rock.png'), (30, 30)),
+    'rock': pygame.transform.scale(load_image('rock.png'), (60, 60)),
     'empty': pygame.transform.scale(load_image('grass.png'), (tile_width, tile_height))
 }
-player_image = pygame.transform.scale(load_image('cop.png'), (40, 50))
+player_image = pygame.transform.scale(load_image('cop.png'), (80, 100))
 
 
 tiles_group = pygame.sprite.Group()
@@ -101,17 +101,20 @@ class Player(pygame.sprite.Sprite):
             tile_width * pos_x + 15, tile_height * pos_y + 5)
 
     def move(self, dx, dy):
-        new_x = self.rect.x + dx * tile_width
-        new_y = self.rect.y + dy * tile_height
+        new_x = self.rect.x + dx
+        new_y = self.rect.y + dy
         if 0 > new_x >= width and 0 > new_y >= height:
             return
         for tile in tiles_group:
-            if tile.image == tile_images['wall']:
+            if tile.image == tile_images['rock']:
                 if tile.rect.colliderect(pygame.Rect(new_x - 15, new_y - 5,
                                                      tile_width, tile_height)):
                     return
         self.rect.x = new_x
         self.rect.y = new_y
+
+    def blink(self):
+        pass
 
 
 def generate_level(level):
