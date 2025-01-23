@@ -53,10 +53,7 @@ def start_screen():
                 game_exit()
             elif event.type == pygame.KEYDOWN or \
                     event.type == pygame.MOUSEBUTTONDOWN:
-                screen.fill((0, 0, 0))
-                all_sprites.draw(screen)
-                pygame.display.flip()
-                return generate_level(load_level('map.txt'))
+                return
         pygame.display.flip()
         clock.tick(FPS)
 
@@ -96,13 +93,14 @@ class Tile(pygame.sprite.Sprite):
 class Player(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         super().__init__(player_group, all_sprites)
-        self.image = player_image
+        self.image = player_image.subsurface((0, 50, 80, 50))
         self.rect = self.image.get_rect().move(
             tile_width * pos_x + 15, tile_height * pos_y + 5)
+        self.blinking = False
 
     def move(self, dx, dy):
-        new_x = self.rect.x + dx
-        new_y = self.rect.y + dy
+        new_x = self.rect.x + dx * 10
+        new_y = self.rect.y + dy * 10
         if 0 > new_x >= width and 0 > new_y >= height:
             return
         for tile in tiles_group:
@@ -112,9 +110,16 @@ class Player(pygame.sprite.Sprite):
                     return
         self.rect.x = new_x
         self.rect.y = new_y
+        print(self.rect)
 
     def blink(self):
-        pass
+        if not self.blinking:
+            self.image = player_image.subsurface((0, 0, 80, 50))
+            self.blinking = True
+        else:
+            self.image = player_image.subsurface((0, 50, 80, 50))
+            self.blinking = False
+        clock.tick(1)
 
 
 def generate_level(level):
@@ -129,7 +134,7 @@ def generate_level(level):
             elif level[y][x] == '@':
                 Tile('empty', x, y)
                 new_player = Player(x, y)
-    return new_player, x, y
+    return new_player, x * tile_width, y * tile_height
 
 
 class Game:
@@ -138,21 +143,21 @@ class Game:
         start_screen()
         level_map = load_level('map.txt')
         new_level = generate_level(level_map)
-        player = new_level[0]
-        # screen = pygame.display.set_mode((new_level[1] * tile_width, new_level[2]))
+        player, width, height = new_level
+        screen = pygame.display.set_mode((width, height))
         running = True
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_UP:
+                    if event.key in (pygame.K_UP, pygame.K_w):
                         player.move(0, -1)
-                    elif event.key == pygame.K_DOWN:
+                    elif event.key in (pygame.K_DOWN, pygame.K_s):
                         player.move(0, 1)
-                    elif event.key == pygame.K_RIGHT:
+                    elif event.key in (pygame.K_RIGHT, pygame.K_d):
                         player.move(1, 0)
-                    elif event.key == pygame.K_LEFT:
+                    elif event.key in (pygame.K_LEFT, pygame.K_a):
                         player.move(-1, 0)
             pygame.display.flip()
             clock.tick(FPS)
@@ -161,6 +166,7 @@ class Game:
             tiles_group.draw(screen)
             player_group.draw(screen)
             clock.tick(FPS)
+            player.blink()
             pygame.display.flip()
 
         pygame.quit()
