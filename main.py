@@ -31,7 +31,7 @@ def game_exit():
 
 
 def start_screen():
-    intro_text = ["COP CAT", "",
+    intro_text = ["COP CAT",
                   "Начать игру",
                   "Настройки"]
     fon = pygame.transform.scale(load_image('fon.jpg'), (width, height))
@@ -71,7 +71,7 @@ def load_level(filename):
 
 tile_width = tile_height = 50
 tile_images = {
-    'rock': pygame.transform.scale(load_image('rock.png'), (60, 60)),
+    'rock': pygame.transform.scale(load_image('rock.png'), (tile_width, tile_height)),
     'empty': pygame.transform.scale(load_image('grass.png'), (tile_width, tile_height))
 }
 player_image = pygame.transform.scale(load_image('cop.png'), (80, 100))
@@ -97,6 +97,8 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect().move(
             tile_width * pos_x + 15, tile_height * pos_y + 5)
         self.blinking = False
+        self.blink_timer = 0
+        self.blink_interval = 1000
 
     def move(self, dx, dy):
         new_x = self.rect.x + dx * 10
@@ -110,16 +112,17 @@ class Player(pygame.sprite.Sprite):
                     return
         self.rect.x = new_x
         self.rect.y = new_y
-        print(self.rect)
 
     def blink(self):
-        if not self.blinking:
-            self.image = player_image.subsurface((0, 0, 80, 50))
-            self.blinking = True
-        else:
-            self.image = player_image.subsurface((0, 50, 80, 50))
-            self.blinking = False
-        clock.tick(1)
+        current_time = pygame.time.get_ticks()
+        if current_time - self.blink_timer >= self.blink_interval:
+            if self.blinking:
+                self.image = player_image.subsurface((0, 50, 80, 50))
+            else:
+                self.image = player_image.subsurface((0, 0, 80, 50))
+
+            self.blinking = not self.blinking
+            self.blink_timer = current_time
 
 
 def generate_level(level):
@@ -137,6 +140,20 @@ def generate_level(level):
     return new_player, x * tile_width, y * tile_height
 
 
+class Camera:
+    def __init__(self):
+        self.dx = 0
+        self.dy = 0
+
+    def apply(self, obj):
+        obj.rect.x += self.dx
+        obj.rect.y += self.dy
+
+    def update(self, target):
+        self.dx = -(target.rect.x + target.rect.w // 2 - width // 2)
+        self.dy = -(target.rect.y + target.rect.h // 2 - height // 2)
+
+
 class Game:
     def __init__(self):
         pygame.display.set_caption("Cat Cop")
@@ -145,6 +162,7 @@ class Game:
         new_level = generate_level(level_map)
         player, width, height = new_level
         screen = pygame.display.set_mode((width, height))
+        camera = Camera()
         running = True
         while running:
             for event in pygame.event.get():
@@ -161,7 +179,9 @@ class Game:
                         player.move(-1, 0)
             pygame.display.flip()
             clock.tick(FPS)
-
+            camera.update(player)
+            for sprite in all_sprites:
+                camera.apply(sprite)
             screen.fill((0, 0, 0))
             tiles_group.draw(screen)
             player_group.draw(screen)
