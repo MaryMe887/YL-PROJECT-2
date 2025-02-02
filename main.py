@@ -6,6 +6,8 @@ FPS = 50
 clock = pygame.time.Clock()
 size = width, height = 800, 600
 screen = pygame.display.set_mode(size)
+weapons = {'gun': {'damage': 10, 'cooldown': 50, 'graphic': 'gun_image'}}
+enemies = {'rat': {'health': 60, 'damage': 5, 'image': 'rat', 'speed': 2, 'attack_radius': 30, 'notice_radius': 300}}
 
 
 def load_image(name, colorkey=None):
@@ -124,6 +126,17 @@ class Player(pygame.sprite.Sprite):
             self.blinking = not self.blinking
             self.blink_timer = current_time
 
+
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self, name, pos):
+        super().__init__(all_sprites)
+        self.image = enemies[name]['image']
+        self.rect = self.image.get_rect(topleft=pos)
+        self.hp = enemies['health']
+        self.speed = enemies['speed']
+        self.attack_damage = enemies['damage']
+        self.attack_radius = enemies['attack_radius']
+        self.notice_radius = enemies['notice_radius']
 
 def generate_level(level):
     new_player, x, y = None, None, None
