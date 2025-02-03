@@ -7,7 +7,7 @@ clock = pygame.time.Clock()
 size = width, height = 800, 600
 screen = pygame.display.set_mode(size)
 weapons = {'gun': {'damage': 10, 'cooldown': 50, 'graphic': 'gun_image'}}
-enemies = {'rat': {'health': 60, 'damage': 5, 'image': 'rat', 'speed': 2, 'attack_radius': 30, 'notice_radius': 300}}
+enemies = {'rat': {'health': 60, 'damage': 5, 'image': 'rat.png', 'speed': 2, 'attack_radius': 30, 'notice_radius': 300}}
 
 
 def load_image(name, colorkey=None):
@@ -41,21 +41,22 @@ def start_screen():
     font = pygame.font.Font(None, 30)
     text_coord = 50
     for line in intro_text:
-        string_rendered = font.render(line, 1, pygame.Color('purple'))
+        string_rendered = font.render(line, 1, pygame.Color((85, 25, 112)))
         intro_rect = string_rendered.get_rect()
         text_coord += 50
         intro_rect.top = text_coord
         intro_rect.x = 10
         text_coord += intro_rect.height
+        print(intro_rect.x, intro_rect.y, intro_rect.width, intro_rect.height)
         screen.blit(string_rendered, intro_rect)
 
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 game_exit()
-            elif event.type == pygame.KEYDOWN or \
-                    event.type == pygame.MOUSEBUTTONDOWN:
-                return
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if (128, 190) >= event.pos >= (10, 170):
+                    return
         pygame.display.flip()
         clock.tick(FPS)
 
@@ -138,6 +139,7 @@ class Enemy(pygame.sprite.Sprite):
         self.attack_radius = enemies['attack_radius']
         self.notice_radius = enemies['notice_radius']
 
+
 def generate_level(level):
     new_player, x, y = None, None, None
     for y in range(len(level)):
@@ -171,6 +173,8 @@ class Game:
     def __init__(self):
         pygame.display.set_caption("Cat Cop")
         start_screen()
+        pygame.mixer.music.load('background.mp3')
+        pygame.mixer.music.play()
         level_map = load_level('map.txt')
         new_level = generate_level(level_map)
         player, width, height = new_level
