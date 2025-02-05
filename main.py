@@ -47,7 +47,6 @@ def start_screen():
         intro_rect.top = text_coord
         intro_rect.x = 10
         text_coord += intro_rect.height
-        print(intro_rect.x, intro_rect.y, intro_rect.width, intro_rect.height)
         screen.blit(string_rendered, intro_rect)
 
     while True:
