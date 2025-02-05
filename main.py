@@ -103,6 +103,9 @@ class Player(pygame.sprite.Sprite):
         self.blink_timer = 0
         self.blink_interval = 1000
 
+        self.stats = {'hp': 100, 'attack': 10, 'speed': 6}
+        self.current_hp = 100
+
     def move(self, dx, dy):
         new_x = self.rect.x + dx * 10
         new_y = self.rect.y + dy * 10
@@ -126,6 +129,19 @@ class Player(pygame.sprite.Sprite):
 
             self.blinking = not self.blinking
             self.blink_timer = current_time
+
+    def update(self):
+        pass
+
+
+class UI:
+    def __init__(self):
+        self.health_bar = pygame.Rect(10, 10, 200, 20)
+
+
+class Weapon:
+    def __init__(self):
+        pass
 
 
 class Enemy(pygame.sprite.Sprite):
