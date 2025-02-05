@@ -192,7 +192,7 @@ def generate_level(level):
             elif level[y][x] == '@':
                 Tile('empty', x, y)
                 new_player = Player(x, y)
-    Enemy('rat', (200, 200))
+    Enemy('rat', (500, 500))
     return new_player, x * tile_width, y * tile_height
 
 
