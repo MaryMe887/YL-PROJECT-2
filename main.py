@@ -112,7 +112,7 @@ class Player(pygame.sprite.Sprite):
             return
         for tile in tiles_group:
             if tile.image == tile_images['rock']:
-                if tile.rect.colliderect(pygame.Rect(new_x - 15, new_y - 5,
+                if tile.rect.colliderect(pygame.Rect(new_x, new_y,
                                                      tile_width, tile_height)):
                     return
         self.rect.x = new_x
@@ -136,6 +136,10 @@ class Player(pygame.sprite.Sprite):
 class UI:
     def __init__(self, player):
         self.health_bar = pygame.Rect(10, 10, player.current_hp * 2, 20)
+
+    def show_bar(self, player):
+        pygame.draw.rect(screen, '#222222', pygame.Rect(10, 10, player.stats['hp'] * 2, 20))
+        pygame.draw.rect(screen, 'red', self.health_bar)
 
 
 class Weapon:
@@ -188,8 +192,8 @@ class Game:
     def __init__(self):
         pygame.display.set_caption("Cat Cop")
         start_screen()
-        pygame.mixer.music.load('background.mp3')
-        pygame.mixer.music.play()
+        #pygame.mixer.music.load('background.mp3')
+        #pygame.mixer.music.play()
         level_map = load_level('map.txt')
         new_level = generate_level(level_map)
         player, width, height = new_level
@@ -215,8 +219,10 @@ class Game:
             for sprite in all_sprites:
                 camera.apply(sprite)
             screen.fill((0, 0, 0))
+            ui = UI(player)
             tiles_group.draw(screen)
             player_group.draw(screen)
+            ui.show_bar(player)
             clock.tick(FPS)
             player.blink()
             pygame.display.flip()
