@@ -2,7 +2,7 @@ import os
 import pygame, sys
 
 pygame.init()
-FPS = 50
+FPS = 60
 clock = pygame.time.Clock()
 size = width, height = 800, 600
 screen = pygame.display.set_mode(size)
@@ -135,8 +135,8 @@ class Player(pygame.sprite.Sprite):
 
 
 class UI:
-    def __init__(self):
-        self.health_bar = pygame.Rect(10, 10, 200, 20)
+    def __init__(self, player):
+        self.health_bar = pygame.Rect(10, 10, player.current_hp * 2, 20)
 
 
 class Weapon:
