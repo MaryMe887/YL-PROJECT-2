@@ -118,13 +118,14 @@ class Player(pygame.sprite.Sprite):
         self.blink_timer = 0
         self.blink_interval = 2000
         # статы
-        self.stats = {'hp': 100, 'attack': 10, 'speed': 6}
+        self.stats = {'hp': 100, 'attack': 10, 'speed': 10}
         self.current_hp = 100
 
     def move(self, dx, dy):
         # метод движения
-        new_x = self.rect.x + dx * 10
-        new_y = self.rect.y + dy * 10
+        speed = self.stats['speed']
+        new_x = self.rect.x + dx * speed
+        new_y = self.rect.y + dy * speed
         if 0 > new_x >= width and 0 > new_y >= height:
             return
         for tile in tiles_group:
