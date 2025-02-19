@@ -11,7 +11,7 @@ size = width, height = 800, 600
 screen = pygame.display.set_mode(size)
 weapons = {'gun': {'damage': 10, 'cooldown': 50, 'graphic': 'gun_image'}}
 enemies = {'rat': {'health': 60, 'damage': 5, 'image': 'rat.png',
-                   'speed': 2, 'attack_radius': 30, 'notice_radius': 300, 'size': (60, 150)}}
+                   'speed': 2, 'attack_radius': 30, 'notice_radius': 300, 'size': (100, 200)}}
 
 
 def load_image(name, colorkey=None):
