@@ -218,8 +218,8 @@ class Game:
     def __init__(self):
         pygame.display.set_caption("Cat Cop")
         start_screen()
-        pygame.mixer.music.load('background.mp3')
-        pygame.mixer.music.play()
+        # pygame.mixer.music.load('background.mp3')
+        # pygame.mixer.music.play()
         level_map = load_level('map.txt')
         new_level = generate_level(level_map)
         player, width, height = new_level
@@ -228,6 +228,7 @@ class Game:
         running = True
         # управление
         while running:
+            print(player.rect.x, player.rect.y)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
