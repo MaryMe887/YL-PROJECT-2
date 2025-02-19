@@ -135,6 +135,7 @@ class Player(pygame.sprite.Sprite):
                     return
         self.rect.x = new_x
         self.rect.y = new_y
+        print(self.rect.x, self.rect.y)
 
     def blink(self):
         # анимация моргания
@@ -171,12 +172,14 @@ class Enemy(pygame.sprite.Sprite):
     def __init__(self, name, pos):
         super().__init__(all_sprites)
         self.image = load_image(enemies[name]['image'])
-        self.rect = self.image.get_rect(topleft=pos)
+        self.rect = self.image.get_rect().move(
+            tile_width * pos[0] + 15, tile_height * pos[1] + 5)
         self.hp = enemies[name]['health']
         self.speed = enemies[name]['speed']
         self.attack_damage = enemies[name]['damage']
         self.attack_radius = enemies[name]['attack_radius']
         self.notice_radius = enemies[name]['notice_radius']
+        print('Новый противник')
 
 
 def generate_level(level):
@@ -192,7 +195,7 @@ def generate_level(level):
             elif level[y][x] == '@':
                 Tile('empty', x, y)
                 new_player = Player(x, y)
-    Enemy('rat', (500, 500))
+    Enemy('rat', (4, 4))
     return new_player, x * tile_width, y * tile_height
 
 
@@ -228,7 +231,6 @@ class Game:
         running = True
         # управление
         while running:
-            print(player.rect.x, player.rect.y)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -250,6 +252,7 @@ class Game:
             ui = UI(player)
             tiles_group.draw(screen)
             player_group.draw(screen)
+            all_sprites.draw(screen)
             ui.show_bar(player)
             clock.tick(FPS)
             player.blink()
