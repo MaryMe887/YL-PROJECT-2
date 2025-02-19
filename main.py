@@ -176,11 +176,20 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = self.image.get_rect().move(
             tile_width * pos[0] + 15, tile_height * pos[1] + 5)
         self.hp = enemies[name]['health']
+        self.state = 'idle'
         self.speed = enemies[name]['speed']
         self.attack_damage = enemies[name]['damage']
         self.attack_radius = enemies[name]['attack_radius']
         self.notice_radius = enemies[name]['notice_radius']
         print('Новый противник')
+
+    def check_player_dist(self, player_pos, enemy_pos):
+        if ((player_pos[0] - enemy_pos[0]) ** 2 + (player_pos[1] - enemy_pos[1]) ** 2) ** 0.5 <= self.notice_radius:
+            self.state = 'approach'
+
+    def update(self):
+        pass
+
 
 
 def generate_level(level):
