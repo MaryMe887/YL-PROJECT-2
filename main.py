@@ -11,7 +11,7 @@ size = width, height = 800, 600
 screen = pygame.display.set_mode(size)
 weapons = {'gun': {'damage': 10, 'cooldown': 50, 'graphic': 'gun_image'}}
 enemies = {'rat': {'health': 60, 'damage': 5, 'image': 'rat.png',
-                   'speed': 2, 'attack_radius': 30, 'notice_radius': 300}}
+                   'speed': 2, 'attack_radius': 30, 'notice_radius': 300, 'size': (60, 150)}}
 
 
 def load_image(name, colorkey=None):
@@ -171,7 +171,7 @@ class Enemy(pygame.sprite.Sprite):
     '''класс противников'''
     def __init__(self, name, pos):
         super().__init__(all_sprites)
-        self.image = load_image(enemies[name]['image'])
+        self.image = pygame.transform.scale(load_image(enemies[name]['image']), enemies[name]['size'])
         self.rect = self.image.get_rect().move(
             tile_width * pos[0] + 15, tile_height * pos[1] + 5)
         self.hp = enemies[name]['health']
