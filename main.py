@@ -9,9 +9,8 @@ FPS = 60
 clock = pygame.time.Clock()
 size = width, height = 800, 600
 screen = pygame.display.set_mode(size)
-weapons = {'gun': {'damage': 10, 'cooldown': 50, 'graphic': 'gun_image'}}
 enemies = {'rat': {'health': 60, 'damage': 5, 'image': 'rat.png',
-                   'speed': 2, 'attack_radius': 30, 'notice_radius': 50, 'size': (100, 200)}}
+                   'speed': 2, 'attack_radius': 30, 'notice_radius': 100, 'size': (100, 200)}}
 
 
 def load_image(name, colorkey=None):
@@ -84,7 +83,7 @@ def load_level(filename):
 
 
 # переменные для самой игры
-tile_width = tile_height = 50
+tile_width = tile_height = 100
 tile_images = {
     'rock': pygame.transform.scale(load_image('rock.png'), (tile_width, tile_height)),
     'empty': pygame.transform.scale(load_image('grass.png'), (tile_width, tile_height))
@@ -140,7 +139,6 @@ class Player(pygame.sprite.Sprite):
                     return
         self.rect.x = new_x
         self.rect.y = new_y
-        print(self.rect.x, self.rect.y)
 
     def blink(self):
         # анимация моргания
@@ -181,18 +179,24 @@ class Bullet(pygame.sprite.Sprite):
         self.image = pygame.Surface((10, 10))
         self.image.fill((255, 0, 0))
         self.rect = self.image.get_rect(center=pos)
-        self.speed = 10
+        self.speed = 2
+        self.damage = 10
         self.direction = direction
-        while True:
-            self.update()
 
     def update(self):
-        new_x = self.direction[0] * self.speed
-        new_y = self.direction[1] * self.speed
-        # Удаление пули, если она выходит за пределы экрана
-        if new_x < 0 or new_x > width or new_y < 0 or new_y > height:
+        '''Обновление состояния пули'''
+        # перемещение пули
+        self.rect.x += self.direction[0] * self.speed
+        self.rect.y += self.direction[1] * self.speed
+        # удаление пули, если выходит за пределы экрана
+        print(self.rect.x, self.rect.y)
+        if self.rect.x < 0 or self.rect.x > width or self.rect.y < 0 or self.rect.y > height:
             self.kill()
-        self.rect = self.rect.move(new_x, new_y)
+        # проверка на столкновение с противниками
+        hits = pygame.sprite.spritecollide(self, enemy_group, False)
+        for enemy in hits:
+            enemy.hp -= self.damage
+            self.kill()
 
 
 class Enemy(pygame.sprite.Sprite):
@@ -208,7 +212,6 @@ class Enemy(pygame.sprite.Sprite):
         self.attack_damage = enemies[name]['damage']
         self.attack_radius = enemies[name]['attack_radius']
         self.notice_radius = enemies[name]['notice_radius']
-        print('Новый противник')
 
     def get_distance(self, player_pos):
         '''Вычисление расстояния до игрока'''
@@ -220,13 +223,10 @@ class Enemy(pygame.sprite.Sprite):
         # Если игрок в пределах радиуса заметности, приближаемся
         if distance <= self.notice_radius:
             self.state = 'approach'
-        else:
-            self.state = 'idle'
 
     def approach(self, player):
         '''Приближение к игроку'''
         distance = self.get_distance(player.rect.center)
-
         if distance > self.attack_radius:  # Только если враг не в атакующей позиции
             # вектор направления к игроку
             dx = (player.rect.centerx - self.rect.centerx)
@@ -260,7 +260,7 @@ def generate_level(level):
                 Tile('empty', x, y)
                 new_player = Player(x, y)
     Enemy('rat', (4, 4))
-    return new_player, x * tile_width, y * tile_height
+    return new_player
 
 
 class Camera:
@@ -288,9 +288,7 @@ class Game:
         # pygame.mixer.music.load('background.mp3')
         # pygame.mixer.music.play()
         level_map = load_level('map.txt')
-        new_level = generate_level(level_map)
-        player, width, height = new_level
-        screen = pygame.display.set_mode((width, height))
+        player = generate_level(level_map)
         camera = Camera()
         running = True
         # управление
@@ -311,6 +309,8 @@ class Game:
                     if event.button == 1:
                         player.shoot()
                         print('пау')
+            for bullet in [s for s in all_sprites if isinstance(s, Bullet)]:
+                bullet.update()
             pygame.display.flip()
             clock.tick(FPS)
             camera.update(player)
@@ -318,16 +318,14 @@ class Game:
                 camera.apply(sprite)
             screen.fill((0, 0, 0))
             ui = UI(player)
-            tiles_group.draw(screen)
-            player_group.draw(screen)
             all_sprites.draw(screen)
+            player_group.draw(screen)
             for enemy in enemy_group:
                 enemy.update(player)
             ui.show_bar(player)
             clock.tick(FPS)
             player.blink()
             pygame.display.flip()
-
         pygame.quit()
 
 
