@@ -1,4 +1,6 @@
 import os
+from random import choice
+
 import pygame
 import sys
 
@@ -10,7 +12,7 @@ clock = pygame.time.Clock()
 size = width, height = 800, 600
 screen = pygame.display.set_mode(size)
 enemies = {'rat': {'health': 60, 'damage': 5, 'image': 'rat.png',
-                   'speed': 2, 'attack_radius': 30, 'notice_radius': 100, 'size': (100, 200)}}
+                   'speed': 1, 'attack_radius': 30, 'notice_radius': 100, 'size': (100, 200)}}
 
 
 def load_image(name, colorkey=None):
@@ -163,13 +165,17 @@ class Player(pygame.sprite.Sprite):
 
 class UI:
     '''класс отображения статов'''
-    def __init__(self, player):
+    def __init__(self, pos, current_hp, hp, color):
         # пока тут только самое важное - хп
-        self.health_bar = pygame.Rect(10, 10, player.current_hp * 2, 20)
+        self.current_hp = current_hp
+        self.hp = hp
+        self.color = color
+        self.pos = pos
+        self.health_bar = pygame.Rect(pos[0], pos[1], self.current_hp * 2, 20)
 
-    def show_bar(self, player):
-        pygame.draw.rect(screen, '#222222', pygame.Rect(10, 10, player.stats['hp'] * 2, 20))
-        pygame.draw.rect(screen, 'red', self.health_bar)
+    def show_bar(self):
+        pygame.draw.rect(screen, '#222222', pygame.Rect(self.pos[0], self.pos[1], self.hp * 2, 20))
+        pygame.draw.rect(screen, self.color, self.health_bar)
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -177,9 +183,9 @@ class Bullet(pygame.sprite.Sprite):
     def __init__(self, pos, direction):
         super().__init__(all_sprites)
         self.image = pygame.Surface((10, 10))
-        self.image.fill((255, 0, 0))
+        self.image.fill((41, 49, 51))
         self.rect = self.image.get_rect(center=pos)
-        self.speed = 2
+        self.speed = 4
         self.damage = 10
         self.direction = direction
 
@@ -189,13 +195,14 @@ class Bullet(pygame.sprite.Sprite):
         self.rect.x += self.direction[0] * self.speed
         self.rect.y += self.direction[1] * self.speed
         # удаление пули, если выходит за пределы экрана
-        print(self.rect.x, self.rect.y)
         if self.rect.x < 0 or self.rect.x > width or self.rect.y < 0 or self.rect.y > height:
             self.kill()
         # проверка на столкновение с противниками
         hits = pygame.sprite.spritecollide(self, enemy_group, False)
         for enemy in hits:
             enemy.hp -= self.damage
+            enemy.state = 'angry'
+            enemy.calm = False
             self.kill()
 
 
@@ -212,6 +219,9 @@ class Enemy(pygame.sprite.Sprite):
         self.attack_damage = enemies[name]['damage']
         self.attack_radius = enemies[name]['attack_radius']
         self.notice_radius = enemies[name]['notice_radius']
+        self.calm = True
+        self.last_attack = 0
+        self.ui = UI((self.rect.x, self.rect.y - 20), self.hp, enemies[name]['health'], (255, 255, 153))
 
     def get_distance(self, player_pos):
         '''Вычисление расстояния до игрока'''
@@ -221,10 +231,11 @@ class Enemy(pygame.sprite.Sprite):
         '''Проверка состояния врага относительно игрока'''
         distance = self.get_distance((player.rect.x, player.rect.y))
         # Если игрок в пределах радиуса заметности, приближаемся
-        if distance <= self.notice_radius:
-            self.state = 'approach'
+        if distance <= self.notice_radius and self.calm:
+            self.state = choice(['scared'])
+            self.calm = False
 
-    def approach(self, player):
+    def move(self, player):
         '''Приближение к игроку'''
         distance = self.get_distance(player.rect.center)
         if distance > self.attack_radius:  # Только если враг не в атакующей позиции
@@ -235,15 +246,32 @@ class Enemy(pygame.sprite.Sprite):
             if length > 0:  # Для избежания деления на ноль
                 dx /= length
                 dy /= length
+            if self.state == 'angry':
+                self.rect.x += dx * self.speed
+                self.rect.y += dy * self.speed
+            elif self.state == 'scared':
+                self.rect.x -= dx * self.speed
+                self.rect.y -= dy * self.speed
 
-            self.rect.x += dx * self.speed
-            self.rect.y += dy * self.speed
+    def attack(self, player):
+        current_time = pygame.time.get_ticks()
+        '''Метод для атаки игрока'''
+        if self.get_distance(player.rect.center) <= self.attack_radius and current_time - self.last_attack >= 5000:
+            player.current_hp -= self.attack_damage
+            self.last_attack = current_time
+            print(self.last_attack)
+            print('Враг атаковал игрока, текущий HP: ', player.current_hp)
 
     def update(self, player):
         '''Обновление состояния врага на основе положения игрока'''
         self.check_player(player)
-        if self.state == 'approach':
-            self.approach(player)  # Приближаемся к игроку
+        self.move(player)  # Приближаемся к игроку или от него
+        self.attack(player)
+        if self.state != 'idle':
+            self.ui.show_bar()
+        if self.hp <= 0:
+            self.kill()
+
 
 
 def generate_level(level):
@@ -317,12 +345,12 @@ class Game:
             for sprite in all_sprites:
                 camera.apply(sprite)
             screen.fill((0, 0, 0))
-            ui = UI(player)
+            ui = UI((10, 10), player.current_hp, player.stats['hp'], 'red')
             all_sprites.draw(screen)
             player_group.draw(screen)
             for enemy in enemy_group:
                 enemy.update(player)
-            ui.show_bar(player)
+            ui.show_bar()
             clock.tick(FPS)
             player.blink()
             pygame.display.flip()
