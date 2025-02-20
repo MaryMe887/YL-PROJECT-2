@@ -165,17 +165,15 @@ class Player(pygame.sprite.Sprite):
 
 class UI:
     '''класс отображения статов'''
-    def __init__(self, pos, current_hp, hp, color):
+    def __init__(self, hp, color, flag_player=False):
         # пока тут только самое важное - хп
-        self.current_hp = current_hp
         self.hp = hp
         self.color = color
-        self.pos = pos
-        self.health_bar = pygame.Rect(pos[0], pos[1], self.current_hp * 2, 20)
 
-    def show_bar(self):
-        pygame.draw.rect(screen, '#222222', pygame.Rect(self.pos[0], self.pos[1], self.hp * 2, 20))
-        pygame.draw.rect(screen, self.color, self.health_bar)
+    def show_bar(self, pos, current_hp):
+        health_bar = pygame.Rect(pos[0], pos[1] - 10, current_hp * 2, 20)
+        pygame.draw.rect(screen, '#222222', pygame.Rect(pos[0], pos[1] - 10, self.hp * 2, 20))
+        pygame.draw.rect(screen, self.color, health_bar)
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -212,7 +210,7 @@ class Enemy(pygame.sprite.Sprite):
         super().__init__(enemy_group, all_sprites)
         self.image = pygame.transform.scale(load_image(enemies[name]['image']), enemies[name]['size'])
         self.rect = self.image.get_rect().move(
-            tile_width * pos[0] + 15, tile_height * pos[1] + 5)
+            pos[0] + 15, pos[1] + 5)
         self.hp = enemies[name]['health']
         self.state = 'idle'
         self.speed = enemies[name]['speed']
@@ -221,7 +219,7 @@ class Enemy(pygame.sprite.Sprite):
         self.notice_radius = enemies[name]['notice_radius']
         self.calm = True
         self.last_attack = 0
-        self.ui = UI((self.rect.x, self.rect.y - 20), self.hp, enemies[name]['health'], (255, 255, 153))
+        self.ui = UI(self.hp, (255, 255, 153))
 
     def get_distance(self, player_pos):
         '''Вычисление расстояния до игрока'''
@@ -232,7 +230,9 @@ class Enemy(pygame.sprite.Sprite):
         distance = self.get_distance((player.rect.x, player.rect.y))
         # Если игрок в пределах радиуса заметности, приближаемся
         if distance <= self.notice_radius and self.calm:
-            self.state = choice(['scared'])
+            # может вступить в бой
+            # или попытаться убежать
+            self.state = choice(['scared', 'angry'])
             self.calm = False
 
     def move(self, player):
@@ -268,10 +268,9 @@ class Enemy(pygame.sprite.Sprite):
         self.move(player)  # Приближаемся к игроку или от него
         self.attack(player)
         if self.state != 'idle':
-            self.ui.show_bar()
+            self.ui.show_bar((self.rect.x, self.rect.y), self.hp)
         if self.hp <= 0:
             self.kill()
-
 
 
 def generate_level(level):
@@ -279,15 +278,13 @@ def generate_level(level):
     new_player, x, y = None, None, None
     for y in range(len(level)):
         for x in range(len(level[y])):
-            if level[y][x] == '.':
-                Tile('empty', x, y)
-            elif level[y][x] == '#':
-                Tile('empty', x, y)
+            Tile('empty', x, y)
+            if level[y][x] == '#':
                 Tile('rock', x, y)
             elif level[y][x] == '@':
-                Tile('empty', x, y)
                 new_player = Player(x, y)
-    Enemy('rat', (4, 4))
+            elif level[y][x] == 'r':
+                Enemy('rat', (x * tile_width, y * tile_height))
     return new_player
 
 
@@ -336,7 +333,6 @@ class Game:
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         player.shoot()
-                        print('пау')
             for bullet in [s for s in all_sprites if isinstance(s, Bullet)]:
                 bullet.update()
             pygame.display.flip()
@@ -345,12 +341,12 @@ class Game:
             for sprite in all_sprites:
                 camera.apply(sprite)
             screen.fill((0, 0, 0))
-            ui = UI((10, 10), player.current_hp, player.stats['hp'], 'red')
+            ui = UI(player.stats['hp'], 'red', True)
             all_sprites.draw(screen)
             player_group.draw(screen)
             for enemy in enemy_group:
                 enemy.update(player)
-            ui.show_bar()
+            ui.show_bar((5, 10), player.current_hp)
             clock.tick(FPS)
             player.blink()
             pygame.display.flip()
