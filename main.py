@@ -310,8 +310,8 @@ class Game:
     def __init__(self):
         pygame.display.set_caption("Cat Cop")
         start_screen()
-        # pygame.mixer.music.load('background.mp3')
-        # pygame.mixer.music.play()
+        pygame.mixer.music.load('background.mp3')
+        pygame.mixer.music.play()
         level_map = load_level('map.txt')
         player = generate_level(level_map)
         camera = Camera()
