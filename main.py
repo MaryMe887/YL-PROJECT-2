@@ -11,7 +11,7 @@ size = width, height = 800, 600
 screen = pygame.display.set_mode(size)
 weapons = {'gun': {'damage': 10, 'cooldown': 50, 'graphic': 'gun_image'}}
 enemies = {'rat': {'health': 60, 'damage': 5, 'image': 'rat.png',
-                   'speed': 2, 'attack_radius': 30, 'notice_radius': 300, 'size': (100, 200)}}
+                   'speed': 2, 'attack_radius': 30, 'notice_radius': 50, 'size': (100, 200)}}
 
 
 def load_image(name, colorkey=None):
@@ -94,6 +94,7 @@ player_image = pygame.transform.scale(load_image('cop.png'), (80, 100))
 # группы спрайтов
 tiles_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
+enemy_group = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
 
 
@@ -104,6 +105,7 @@ class Tile(pygame.sprite.Sprite):
         self.image = tile_images[tile_type]
         self.rect = self.image.get_rect().move(
             tile_width * pos_x, tile_height * pos_y)
+        self.mask = pygame.mask.from_surface(self.image)
 
 
 class Player(pygame.sprite.Sprite):
@@ -113,6 +115,7 @@ class Player(pygame.sprite.Sprite):
         self.image = player_image.subsurface((0, 50, 80, 50))
         self.rect = self.image.get_rect().move(
             tile_width * pos_x + 15, tile_height * pos_y + 5)
+        self.mask = pygame.mask.from_surface(self.image)
         # переменные для анимации моргания
         self.blinking = False
         self.blink_timer = 0
@@ -126,13 +129,14 @@ class Player(pygame.sprite.Sprite):
         speed = self.stats['speed']
         new_x = self.rect.x + dx * speed
         new_y = self.rect.y + dy * speed
-        if 0 > new_x >= width and 0 > new_y >= height:
+        if new_x < 0 or new_x > width - self.rect.width:
+            return
+        if new_y < 0 or new_y > height - self.rect.height:
             return
         for tile in tiles_group:
             # если столкнулся с преградой, не двигаемся
             if tile.image == tile_images['rock']:
-                if tile.rect.colliderect(pygame.Rect(new_x, new_y,
-                                                     tile_width, tile_height)):
+                if pygame.sprite.collide_mask(self, tile):
                     return
         self.rect.x = new_x
         self.rect.y = new_y
@@ -150,6 +154,14 @@ class Player(pygame.sprite.Sprite):
             self.blinking = not self.blinking
             self.blink_timer = current_time
 
+    def shoot(self):
+        mouse_pos = pygame.mouse.get_pos()
+        direction = (mouse_pos[0] - self.rect.x, mouse_pos[1] - self.rect.y)
+        distance = (direction[0] ** 2 + direction[1] ** 2) ** 0.5
+        if distance > 0:
+            direction = (direction[0] / distance, direction[1] / distance)  # Нормализуем вектор
+        Bullet(self.rect.center, direction)
+
 
 class UI:
     '''класс отображения статов'''
@@ -162,16 +174,31 @@ class UI:
         pygame.draw.rect(screen, 'red', self.health_bar)
 
 
-class Weapon:
-    '''класс оружия'''
-    def __init__(self):
-        pass
+class Bullet(pygame.sprite.Sprite):
+    '''класс пули'''
+    def __init__(self, pos, direction):
+        super().__init__(all_sprites)
+        self.image = pygame.Surface((10, 10))
+        self.image.fill((255, 0, 0))
+        self.rect = self.image.get_rect(center=pos)
+        self.speed = 10
+        self.direction = direction
+        while True:
+            self.update()
+
+    def update(self):
+        new_x = self.direction[0] * self.speed
+        new_y = self.direction[1] * self.speed
+        # Удаление пули, если она выходит за пределы экрана
+        if new_x < 0 or new_x > width or new_y < 0 or new_y > height:
+            self.kill()
+        self.rect = self.rect.move(new_x, new_y)
 
 
 class Enemy(pygame.sprite.Sprite):
     '''класс противников'''
     def __init__(self, name, pos):
-        super().__init__(all_sprites)
+        super().__init__(enemy_group, all_sprites)
         self.image = pygame.transform.scale(load_image(enemies[name]['image']), enemies[name]['size'])
         self.rect = self.image.get_rect().move(
             tile_width * pos[0] + 15, tile_height * pos[1] + 5)
@@ -183,13 +210,40 @@ class Enemy(pygame.sprite.Sprite):
         self.notice_radius = enemies[name]['notice_radius']
         print('Новый противник')
 
-    def check_player_dist(self, player_pos, enemy_pos):
-        if ((player_pos[0] - enemy_pos[0]) ** 2 + (player_pos[1] - enemy_pos[1]) ** 2) ** 0.5 <= self.notice_radius:
+    def get_distance(self, player_pos):
+        '''Вычисление расстояния до игрока'''
+        return ((self.rect.centerx - player_pos[0]) ** 2 + (self.rect.centery - player_pos[1]) ** 2) ** 0.5
+
+    def check_player(self, player):
+        '''Проверка состояния врага относительно игрока'''
+        distance = self.get_distance((player.rect.x, player.rect.y))
+        # Если игрок в пределах радиуса заметности, приближаемся
+        if distance <= self.notice_radius:
             self.state = 'approach'
+        else:
+            self.state = 'idle'
 
-    def update(self):
-        pass
+    def approach(self, player):
+        '''Приближение к игроку'''
+        distance = self.get_distance(player.rect.center)
 
+        if distance > self.attack_radius:  # Только если враг не в атакующей позиции
+            # вектор направления к игроку
+            dx = (player.rect.centerx - self.rect.centerx)
+            dy = (player.rect.centery - self.rect.centery)
+            length = (dx ** 2 + dy ** 2) ** 0.5
+            if length > 0:  # Для избежания деления на ноль
+                dx /= length
+                dy /= length
+
+            self.rect.x += dx * self.speed
+            self.rect.y += dy * self.speed
+
+    def update(self, player):
+        '''Обновление состояния врага на основе положения игрока'''
+        self.check_player(player)
+        if self.state == 'approach':
+            self.approach(player)  # Приближаемся к игроку
 
 
 def generate_level(level):
@@ -253,6 +307,10 @@ class Game:
                         player.move(1, 0)
                     elif event.key in (pygame.K_LEFT, pygame.K_a):
                         player.move(-1, 0)
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        player.shoot()
+                        print('пау')
             pygame.display.flip()
             clock.tick(FPS)
             camera.update(player)
@@ -263,6 +321,8 @@ class Game:
             tiles_group.draw(screen)
             player_group.draw(screen)
             all_sprites.draw(screen)
+            for enemy in enemy_group:
+                enemy.update(player)
             ui.show_bar(player)
             clock.tick(FPS)
             player.blink()
